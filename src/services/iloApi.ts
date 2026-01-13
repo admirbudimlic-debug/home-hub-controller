@@ -1,9 +1,18 @@
 import { IloStatus, IloCredentials } from '@/types/ilo';
 
-// Storage key for credentials
+// Storage keys
 const CREDENTIALS_KEY = 'ilo_credentials';
+const API_URL_KEY = 'ilo_api_url';
 
-// Simulated iLO status
+// Default to mock mode, set API URL to enable real mode
+let apiBaseUrl: string | null = localStorage.getItem(API_URL_KEY);
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// ============================================
+// MOCK DATA (used when no backend is configured)
+// ============================================
+
 let mockIloStatus: IloStatus = {
   connected: true,
   hostname: 'hp-server-ilo.local',
@@ -29,10 +38,30 @@ let mockIloStatus: IloStatus = {
   lastBootTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
 };
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// ============================================
+// API IMPLEMENTATION
+// ============================================
 
 export const iloApi = {
-  // Credentials management
+  // Backend URL management
+  getApiUrl: (): string | null => {
+    return apiBaseUrl;
+  },
+
+  setApiUrl: (url: string | null): void => {
+    apiBaseUrl = url;
+    if (url) {
+      localStorage.setItem(API_URL_KEY, url);
+    } else {
+      localStorage.removeItem(API_URL_KEY);
+    }
+  },
+
+  isUsingRealBackend: (): boolean => {
+    return !!apiBaseUrl;
+  },
+
+  // Credentials management (stored locally, sent to backend when needed)
   getCredentials: (): IloCredentials | null => {
     try {
       const stored = localStorage.getItem(CREDENTIALS_KEY);
@@ -50,14 +79,57 @@ export const iloApi = {
     localStorage.removeItem(CREDENTIALS_KEY);
   },
 
+  // Test connection
+  async testConnection(credentials: IloCredentials): Promise<{ success: boolean; message?: string; error?: string }> {
+    if (apiBaseUrl) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/ilo/test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(credentials)
+        });
+        return response.json();
+      } catch (error) {
+        return { success: false, error: 'Failed to connect to backend server' };
+      }
+    }
+    
+    // Mock mode
+    await delay(1500);
+    if (credentials.host && credentials.username && credentials.password) {
+      return { success: true, message: 'Connection successful (mock)' };
+    }
+    return { success: false, error: 'Invalid credentials' };
+  },
+
   // Get iLO status
   async getStatus(): Promise<{ success: boolean; data?: IloStatus; error?: string }> {
+    if (apiBaseUrl) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/ilo/status`);
+        return response.json();
+      } catch (error) {
+        return { success: false, error: 'Failed to connect to backend server' };
+      }
+    }
+
+    // Mock mode
     await delay(300);
     return { success: true, data: { ...mockIloStatus } };
   },
 
   // Power on server
   async powerOn(): Promise<{ success: boolean; message?: string; error?: string }> {
+    if (apiBaseUrl) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/ilo/power/powerOn`, { method: 'POST' });
+        return response.json();
+      } catch (error) {
+        return { success: false, error: 'Failed to connect to backend server' };
+      }
+    }
+
+    // Mock mode
     await delay(2000);
     mockIloStatus.powerState = 'on';
     mockIloStatus.lastBootTime = new Date().toISOString();
@@ -67,6 +139,16 @@ export const iloApi = {
 
   // Power off server (graceful)
   async powerOff(): Promise<{ success: boolean; message?: string; error?: string }> {
+    if (apiBaseUrl) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/ilo/power/powerOff`, { method: 'POST' });
+        return response.json();
+      } catch (error) {
+        return { success: false, error: 'Failed to connect to backend server' };
+      }
+    }
+
+    // Mock mode
     await delay(3000);
     mockIloStatus.powerState = 'off';
     return { success: true, message: 'Graceful shutdown initiated' };
@@ -74,6 +156,16 @@ export const iloApi = {
 
   // Force power off
   async forcePowerOff(): Promise<{ success: boolean; message?: string; error?: string }> {
+    if (apiBaseUrl) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/ilo/power/forcePowerOff`, { method: 'POST' });
+        return response.json();
+      } catch (error) {
+        return { success: false, error: 'Failed to connect to backend server' };
+      }
+    }
+
+    // Mock mode
     await delay(1000);
     mockIloStatus.powerState = 'off';
     return { success: true, message: 'Force power off executed' };
@@ -81,6 +173,16 @@ export const iloApi = {
 
   // Reset/reboot server
   async reset(): Promise<{ success: boolean; message?: string; error?: string }> {
+    if (apiBaseUrl) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/ilo/power/reset`, { method: 'POST' });
+        return response.json();
+      } catch (error) {
+        return { success: false, error: 'Failed to connect to backend server' };
+      }
+    }
+
+    // Mock mode
     await delay(2000);
     mockIloStatus.powerState = 'on';
     mockIloStatus.lastBootTime = new Date().toISOString();
@@ -90,6 +192,16 @@ export const iloApi = {
 
   // Cold boot (power cycle)
   async powerCycle(): Promise<{ success: boolean; message?: string; error?: string }> {
+    if (apiBaseUrl) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/ilo/power/powerCycle`, { method: 'POST' });
+        return response.json();
+      } catch (error) {
+        return { success: false, error: 'Failed to connect to backend server' };
+      }
+    }
+
+    // Mock mode
     await delay(4000);
     mockIloStatus.powerState = 'on';
     mockIloStatus.lastBootTime = new Date().toISOString();
@@ -97,13 +209,36 @@ export const iloApi = {
     return { success: true, message: 'Power cycle initiated' };
   },
 
-  // Test connection
-  async testConnection(credentials: IloCredentials): Promise<{ success: boolean; message?: string; error?: string }> {
-    await delay(1500);
-    // Simulate connection test - in production this would make a real Redfish API call
-    if (credentials.host && credentials.username && credentials.password) {
-      return { success: true, message: 'Connection successful' };
+  // Send credentials to backend
+  async configureBackend(credentials: IloCredentials): Promise<{ success: boolean; message?: string; error?: string }> {
+    if (!apiBaseUrl) {
+      return { success: false, error: 'Backend URL not configured' };
     }
-    return { success: false, error: 'Could not connect to iLO' };
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/ilo/credentials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials)
+      });
+      return response.json();
+    } catch (error) {
+      return { success: false, error: 'Failed to connect to backend server' };
+    }
   },
+
+  // Check backend health
+  async checkBackendHealth(): Promise<{ success: boolean; configured?: boolean; host?: string; error?: string }> {
+    if (!apiBaseUrl) {
+      return { success: true, configured: false };
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/health`);
+      const data = await response.json();
+      return { success: true, ...data };
+    } catch (error) {
+      return { success: false, error: 'Failed to connect to backend server' };
+    }
+  }
 };
