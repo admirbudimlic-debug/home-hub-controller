@@ -6,6 +6,8 @@ import { BulkControls } from '@/components/BulkControls';
 import { Channel, ServiceType } from '@/types/channel';
 import { api } from '@/services/mockApi';
 import { useToast } from '@/hooks/use-toast';
+import { Radio, HardDrive, Cast } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Index = () => {
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -33,8 +35,6 @@ const Index = () => {
 
   useEffect(() => {
     fetchChannels(true);
-
-    // Auto-refresh every 5 seconds
     const interval = setInterval(() => fetchChannels(false), 5000);
     return () => clearInterval(interval);
   }, [fetchChannels]);
@@ -64,14 +64,14 @@ const Index = () => {
       if (response.success) {
         toast({
           title: `${service.toUpperCase()} ${action}ed`,
-          description: `Channel ${5000 + channelId} ${service.toUpperCase()} has been ${action}ed.`,
+          description: `Channel 500${channelId} ${service.toUpperCase()} has been ${action}ed.`,
         });
         await fetchChannels(false);
       }
     } catch (error) {
       toast({
         title: 'Action failed',
-        description: `Failed to ${action} ${service.toUpperCase()} on channel ${5000 + channelId}.`,
+        description: `Failed to ${action} ${service.toUpperCase()} on channel 500${channelId}.`,
         variant: 'destructive',
       });
     }
@@ -112,6 +112,12 @@ const Index = () => {
     { rx: 0, rec: 0, rtmp: 0 }
   );
 
+  const stats = [
+    { key: 'rx', label: 'RX Active', count: runningCounts.rx, icon: Radio, colorClass: 'text-rx', borderClass: 'border-l-rx' },
+    { key: 'rec', label: 'REC Active', count: runningCounts.rec, icon: HardDrive, colorClass: 'text-rec', borderClass: 'border-l-rec' },
+    { key: 'rtmp', label: 'RTMP Active', count: runningCounts.rtmp, icon: Cast, colorClass: 'text-rtmp', borderClass: 'border-l-rtmp' },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <Header
@@ -120,37 +126,47 @@ const Index = () => {
         lastUpdated={lastUpdated}
       />
 
-      <main className="container py-6">
+      <main className="container py-6 space-y-6">
         {/* Stats bar */}
-        <div className="mb-6 grid grid-cols-3 gap-4">
-          {[
-            { label: 'RX Running', count: runningCounts.rx, color: 'bg-rx' },
-            { label: 'REC Running', count: runningCounts.rec, color: 'bg-rec' },
-            { label: 'RTMP Running', count: runningCounts.rtmp, color: 'bg-rtmp' },
-          ].map(({ label, count, color }) => (
+        <div className="grid grid-cols-3 gap-4">
+          {stats.map(({ key, label, count, icon: Icon, colorClass, borderClass }) => (
             <div
-              key={label}
-              className="flex items-center justify-between rounded-lg border border-border bg-card p-4"
+              key={key}
+              className={cn(
+                "relative flex items-center justify-between rounded-lg p-4",
+                "bg-gradient-to-r from-card to-background",
+                "border border-border/60 border-l-2",
+                borderClass
+              )}
             >
-              <span className="text-sm text-muted-foreground">{label}</span>
-              <div className="flex items-center gap-2">
-                <div className={`h-2 w-2 rounded-full ${color}`} />
-                <span className="text-2xl font-bold">{count}/9</span>
+              <div className="flex items-center gap-3">
+                <Icon className={cn("h-5 w-5", colorClass)} />
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className={cn("text-2xl font-bold tabular-nums", colorClass)}>{count}</span>
+                <span className="text-sm text-muted-foreground">/9</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Bulk controls */}
-        <div className="mb-6">
-          <BulkControls onBulkAction={handleBulkAction} isLoading={isBulkLoading} />
+        <BulkControls onBulkAction={handleBulkAction} isLoading={isBulkLoading} />
+
+        {/* Section divider */}
+        <div className="relative py-2">
+          <div className="section-divider" />
+          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-4 text-xs uppercase tracking-widest text-muted-foreground">
+            Channels
+          </span>
         </div>
 
         {/* Channel grid */}
         {isLoading ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="h-64 animate-pulse rounded-lg bg-card" />
+              <div key={i} className="h-64 animate-pulse rounded-lg bg-card border border-border/40" />
             ))}
           </div>
         ) : (
