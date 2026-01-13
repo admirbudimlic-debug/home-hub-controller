@@ -26,9 +26,15 @@ const serviceColors = {
 };
 
 const serviceBorderColors = {
-  rx: 'border-l-rx',
-  rec: 'border-l-rec',
-  rtmp: 'border-l-rtmp',
+  rx: 'border-rx/40',
+  rec: 'border-rec/40',
+  rtmp: 'border-rtmp/40',
+};
+
+const serviceBgColors = {
+  rx: 'bg-rx/5',
+  rec: 'bg-rec/5',
+  rtmp: 'bg-rtmp/5',
 };
 
 export function ChannelCard({ channel, onServiceAction, onOpenDetail, loadingStates }: ChannelCardProps) {
@@ -43,7 +49,6 @@ export function ChannelCard({ channel, onServiceAction, onOpenDetail, loadingSta
   const services: ServiceType[] = ['rx', 'rec', 'rtmp'];
   const getLoadingKey = (service: ServiceType) => `${channel.id}-${service}`;
 
-  // Calculate if all services are running
   const allRunning = services.every(s => channel[s].status === 'running');
   const anyError = services.some(s => channel[s].status === 'error');
 
@@ -51,118 +56,119 @@ export function ChannelCard({ channel, onServiceAction, onOpenDetail, loadingSta
     <div 
       className={cn(
         "group relative overflow-hidden rounded-lg transition-all duration-300",
-        "bg-gradient-to-b from-card to-background",
+        "bg-gradient-to-r from-card via-card to-background",
         "border border-border/60 hover:border-border",
         "hover:shadow-lg hover:shadow-primary/5",
         anyError && "border-status-error/30"
       )}
     >
-      {/* Top accent line */}
+      {/* Left accent line */}
       <div className={cn(
-        "absolute top-0 left-0 right-0 h-px",
-        "bg-gradient-to-r from-transparent via-primary/50 to-transparent",
-        "opacity-0 group-hover:opacity-100 transition-opacity"
+        "absolute left-0 top-0 bottom-0 w-0.5",
+        "bg-gradient-to-b from-primary via-primary/50 to-transparent"
       )} />
 
-      {/* Channel header */}
-      <div className="relative flex items-center justify-between px-4 py-3 border-b border-border/40">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center">
+        {/* Channel ID */}
+        <div className="flex items-center gap-4 px-5 py-4 border-r border-border/40">
           <div className={cn(
-            "relative flex h-11 w-11 items-center justify-center rounded-lg",
+            "relative flex h-12 w-12 items-center justify-center rounded-lg",
             "bg-gradient-to-br from-primary/20 to-primary/5",
             "border border-primary/20",
-            "font-mono text-lg font-bold text-primary"
+            "font-mono text-xl font-bold text-primary"
           )}>
             {channel.id}
             {allRunning && (
               <div className="absolute -top-1 -right-1">
-                <Zap className="h-3 w-3 text-status-running fill-status-running" />
+                <Zap className="h-3.5 w-3.5 text-status-running fill-status-running" />
               </div>
             )}
           </div>
-          <div>
-            <h3 className="font-semibold tracking-tight">Channel 500{channel.id}</h3>
+          <div className="min-w-[100px]">
+            <h3 className="font-semibold tracking-tight">CH 500{channel.id}</h3>
             <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
               <span className="inline-block h-1 w-1 rounded-full bg-primary/60" />
               {channel.ingestSummary}
             </p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={() => onOpenDetail(channel.id)}
-        >
-          Details
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
 
-      {/* Service rows */}
-      <div className="p-3 space-y-1.5">
-        {services.map((service) => {
-          const Icon = serviceIcons[service];
-          const state = channel[service];
-          const isLoading = loadingStates[getLoadingKey(service)];
+        {/* Services - horizontal layout */}
+        <div className="flex-1 flex items-center gap-2 px-4 py-3">
+          {services.map((service) => {
+            const Icon = serviceIcons[service];
+            const state = channel[service];
+            const isLoading = loadingStates[getLoadingKey(service)];
 
-          return (
-            <div
-              key={service}
-              className={cn(
-                "flex items-center justify-between rounded-md px-3 py-2",
-                "bg-secondary/40 hover:bg-secondary/60 transition-colors",
-                "border-l-2",
-                serviceBorderColors[service]
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <Icon className={cn('h-4 w-4', serviceColors[service])} />
-                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-10">
-                  {service}
-                </span>
+            return (
+              <div
+                key={service}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-4 py-2.5 flex-1",
+                  "border",
+                  serviceBorderColors[service],
+                  serviceBgColors[service]
+                )}
+              >
+                <div className="flex items-center gap-2 min-w-[80px]">
+                  <Icon className={cn('h-4 w-4', serviceColors[service])} />
+                  <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    {service}
+                  </span>
+                </div>
                 <StatusBadge status={state.status} size="sm" />
+                <div className="ml-auto">
+                  <ServiceControl
+                    channelId={channel.id}
+                    service={service}
+                    status={state.status}
+                    onStart={() => onServiceAction(channel.id, service, 'start')}
+                    onStop={() => onServiceAction(channel.id, service, 'stop')}
+                    onRestart={() => onServiceAction(channel.id, service, 'restart')}
+                    isLoading={isLoading}
+                    compact
+                  />
+                </div>
               </div>
-              <ServiceControl
-                channelId={channel.id}
-                service={service}
-                status={state.status}
-                onStart={() => onServiceAction(channel.id, service, 'start')}
-                onStop={() => onServiceAction(channel.id, service, 'stop')}
-                onRestart={() => onServiceAction(channel.id, service, 'restart')}
-                isLoading={isLoading}
-                compact
-              />
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      {/* Footer */}
-      <div className="px-4 py-2.5 border-t border-border/40 bg-background/50">
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <span className="uppercase tracking-wider text-[10px]">Out</span>
-            <code className="rounded bg-secondary/80 px-1.5 py-0.5 font-mono text-foreground/80 border border-border/50">
-              {channel.outputSummary}
-            </code>
-            <button
-              onClick={() => copyToClipboard(channel.outputSummary, 'output')}
-              className="p-1 rounded hover:bg-secondary transition-colors"
-            >
-              {copiedField === 'output' ? (
-                <Check className="h-3 w-3 text-status-running" />
-              ) : (
-                <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-              )}
-            </button>
+        {/* Right side info */}
+        <div className="flex items-center gap-4 px-5 py-4 border-l border-border/40">
+          <div className="text-right text-xs space-y-1">
+            <div className="flex items-center gap-2 text-muted-foreground justify-end">
+              <span className="uppercase tracking-wider text-[10px]">Out</span>
+              <code className="rounded bg-secondary/80 px-1.5 py-0.5 font-mono text-foreground/80 border border-border/50">
+                {channel.outputSummary}
+              </code>
+              <button
+                onClick={() => copyToClipboard(channel.outputSummary, 'output')}
+                className="p-1 rounded hover:bg-secondary transition-colors"
+              >
+                {copiedField === 'output' ? (
+                  <Check className="h-3 w-3 text-status-running" />
+                ) : (
+                  <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                )}
+              </button>
+            </div>
+            {channel.rx.uptime && (
+              <div className="text-muted-foreground">
+                <span className="text-[10px] uppercase tracking-wider mr-1">Uptime</span>
+                <span className="font-mono text-foreground/80">{channel.rx.uptime}</span>
+              </div>
+            )}
           </div>
-          {channel.rx.uptime && (
-            <span className="text-muted-foreground">
-              <span className="text-[10px] uppercase tracking-wider mr-1">Up</span>
-              {channel.rx.uptime}
-            </span>
-          )}
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+            onClick={() => onOpenDetail(channel.id)}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
         </div>
       </div>
     </div>

@@ -162,15 +162,15 @@ const Index = () => {
           </span>
         </div>
 
-        {/* Channel grid */}
+        {/* Channel list */}
         {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-3">
             {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="h-64 animate-pulse rounded-lg bg-card border border-border/40" />
+              <div key={i} className="h-20 animate-pulse rounded-lg bg-card border border-border/40" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-2">
             {channels.map((channel) => (
               <ChannelCard
                 key={channel.id}
