@@ -1,4 +1,7 @@
-import { IloStatus, ServerPowerState } from '@/types/ilo';
+import { IloStatus, IloCredentials } from '@/types/ilo';
+
+// Storage key for credentials
+const CREDENTIALS_KEY = 'ilo_credentials';
 
 // Simulated iLO status
 let mockIloStatus: IloStatus = {
@@ -29,6 +32,24 @@ let mockIloStatus: IloStatus = {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const iloApi = {
+  // Credentials management
+  getCredentials: (): IloCredentials | null => {
+    try {
+      const stored = localStorage.getItem(CREDENTIALS_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  saveCredentials: (credentials: IloCredentials): void => {
+    localStorage.setItem(CREDENTIALS_KEY, JSON.stringify(credentials));
+  },
+
+  clearCredentials: (): void => {
+    localStorage.removeItem(CREDENTIALS_KEY);
+  },
+
   // Get iLO status
   async getStatus(): Promise<{ success: boolean; data?: IloStatus; error?: string }> {
     await delay(300);
@@ -36,52 +57,52 @@ export const iloApi = {
   },
 
   // Power on server
-  async powerOn(): Promise<{ success: boolean; error?: string }> {
+  async powerOn(): Promise<{ success: boolean; message?: string; error?: string }> {
     await delay(2000);
     mockIloStatus.powerState = 'on';
     mockIloStatus.lastBootTime = new Date().toISOString();
     mockIloStatus.uptime = '0h 0m';
-    return { success: true };
+    return { success: true, message: 'Power on command sent successfully' };
   },
 
   // Power off server (graceful)
-  async powerOff(): Promise<{ success: boolean; error?: string }> {
+  async powerOff(): Promise<{ success: boolean; message?: string; error?: string }> {
     await delay(3000);
     mockIloStatus.powerState = 'off';
-    return { success: true };
+    return { success: true, message: 'Graceful shutdown initiated' };
   },
 
   // Force power off
-  async forcePowerOff(): Promise<{ success: boolean; error?: string }> {
+  async forcePowerOff(): Promise<{ success: boolean; message?: string; error?: string }> {
     await delay(1000);
     mockIloStatus.powerState = 'off';
-    return { success: true };
+    return { success: true, message: 'Force power off executed' };
   },
 
   // Reset/reboot server
-  async reset(): Promise<{ success: boolean; error?: string }> {
+  async reset(): Promise<{ success: boolean; message?: string; error?: string }> {
     await delay(2000);
     mockIloStatus.powerState = 'on';
     mockIloStatus.lastBootTime = new Date().toISOString();
     mockIloStatus.uptime = '0h 0m';
-    return { success: true };
+    return { success: true, message: 'System reset initiated' };
   },
 
   // Cold boot (power cycle)
-  async powerCycle(): Promise<{ success: boolean; error?: string }> {
+  async powerCycle(): Promise<{ success: boolean; message?: string; error?: string }> {
     await delay(4000);
     mockIloStatus.powerState = 'on';
     mockIloStatus.lastBootTime = new Date().toISOString();
     mockIloStatus.uptime = '0h 0m';
-    return { success: true };
+    return { success: true, message: 'Power cycle initiated' };
   },
 
   // Test connection
-  async testConnection(host: string): Promise<{ success: boolean; error?: string }> {
+  async testConnection(credentials: IloCredentials): Promise<{ success: boolean; message?: string; error?: string }> {
     await delay(1500);
-    // Simulate connection test
-    if (host.includes('ilo') || host.includes('192.168')) {
-      return { success: true };
+    // Simulate connection test - in production this would make a real Redfish API call
+    if (credentials.host && credentials.username && credentials.password) {
+      return { success: true, message: 'Connection successful' };
     }
     return { success: false, error: 'Could not connect to iLO' };
   },

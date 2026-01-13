@@ -9,11 +9,11 @@ import {
   Activity,
   Server,
   AlertTriangle,
-  Check,
   Loader2,
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,12 +31,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { IloStatus } from '@/types/ilo';
+import { IloStatus, IloCredentials } from '@/types/ilo';
+import { IloCredentialsForm } from '@/components/IloCredentialsForm';
 import { iloApi } from '@/services/iloApi';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 export function IloControlPanel() {
+  const [credentials, setCredentials] = useState<IloCredentials | null>(null);
+  const [showConfig, setShowConfig] = useState(false);
   const [status, setStatus] = useState<IloStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -48,7 +51,18 @@ export function IloControlPanel() {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
 
+  // Load credentials on mount
+  useEffect(() => {
+    const stored = iloApi.getCredentials();
+    setCredentials(stored);
+    if (!stored) {
+      setShowConfig(true);
+      setIsLoading(false);
+    }
+  }, []);
+
   const fetchStatus = async () => {
+    if (!credentials) return;
     const response = await iloApi.getStatus();
     if (response.success && response.data) {
       setStatus(response.data);
@@ -57,10 +71,22 @@ export function IloControlPanel() {
   };
 
   useEffect(() => {
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    if (credentials) {
+      fetchStatus();
+      const interval = setInterval(fetchStatus, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [credentials]);
+
+  const handleSaveCredentials = (newCredentials: IloCredentials) => {
+    iloApi.saveCredentials(newCredentials);
+    setCredentials(newCredentials);
+    setShowConfig(false);
+    toast({
+      title: 'Credentials saved',
+      description: 'iLO connection credentials have been saved.',
+    });
+  };
 
   const handleAction = async (action: 'powerOn' | 'powerOff' | 'forcePowerOff' | 'reset' | 'powerCycle') => {
     // Confirm destructive actions
@@ -139,6 +165,35 @@ export function IloControlPanel() {
     }
   };
 
+  // Show config form if no credentials
+  if (!credentials || showConfig) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Server className="h-5 w-5 text-amber-500" />
+            <h2 className="text-sm font-medium uppercase tracking-wider">iLO Control</h2>
+          </div>
+          {credentials && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowConfig(false)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
+        <IloCredentialsForm
+          credentials={credentials}
+          onSave={handleSaveCredentials}
+          onCancel={credentials ? () => setShowConfig(false) : undefined}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="rounded-lg border border-border/60 bg-gradient-to-b from-card to-background p-4">
@@ -159,6 +214,15 @@ export function IloControlPanel() {
         <div className="flex items-center gap-3 text-status-error">
           <AlertTriangle className="h-5 w-5" />
           <span>Failed to connect to iLO</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowConfig(true)}
+            className="ml-auto text-xs"
+          >
+            <Settings className="h-3.5 w-3.5 mr-1" />
+            Configure
+          </Button>
         </div>
       </div>
     );
@@ -228,8 +292,17 @@ export function IloControlPanel() {
                   </div>
                 </div>
 
-                {/* Power controls */}
+                {/* Power controls and settings */}
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setShowConfig(true)}
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                  
                   {status.powerState === 'off' ? (
                     <Button
                       size="sm"
