@@ -1,31 +1,45 @@
-# HP iLO Proxy Server
+# BratesHUB Controller Backend
 
-Backend proxy server for HP iLO Redfish API communication. This server bridges your frontend application with the iLO management interface.
+Backend controller for managing HP server streaming services (RX, REC, RTMP) and HP iLO remote management.
 
-## Why is this needed?
+## Features
 
-Browsers cannot directly call iLO's Redfish API due to:
-1. **CORS restrictions** - iLO doesn't send CORS headers
-2. **Self-signed certificates** - Browsers block HTTPS to self-signed certs
-3. **Network isolation** - iLO is typically on a management network
-
-This proxy runs on your local network, handles authentication, and exposes a clean REST API.
+- **Service Control**: Start, stop, restart streaming services via systemd
+- **Service Status**: Monitor running services, PIDs, uptime, memory usage
+- **Log Fetching**: Retrieve service logs from journalctl
+- **iLO Integration**: Power control, health monitoring, temperature/fan data
+- **Bulk Operations**: Control all channels or specific subsets at once
+- **Security**: Optional API key authentication, restricted CORS
 
 ## Quick Start
 
+### Option 1: Automated Installation
+
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/brateshub-controller-backend.git
+cd brateshub-controller-backend
+
+# Run installer (requires sudo)
+sudo ./install.sh
+```
+
+### Option 2: Manual Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/brateshub-controller-backend.git
+cd brateshub-controller-backend
+
 # Install dependencies
 npm install
 
-# Copy and edit environment config
+# Copy and edit configuration
 cp .env.example .env
-nano .env  # Edit with your settings
+nano .env
 
 # Start the server
 npm start
-
-# Or for development with auto-reload
-npm run dev
 ```
 
 ## Configuration
@@ -33,147 +47,186 @@ npm run dev
 Edit `.env` file:
 
 ```env
+# Server
 PORT=3001
+NODE_ENV=production
+
+# CORS origins (your frontend URL)
+CORS_ORIGINS=https://your-frontend.lovable.app
+
+# Optional API key
+API_KEY=your-secret-key
+
+# iLO connection
 ILO_HOST=192.168.1.100
 ILO_USERNAME=Administrator
 ILO_PASSWORD=your-password
-CORS_ORIGINS=http://localhost:5173,https://your-app.lovable.app
-```
 
-Or set credentials via API after starting.
+# Channels (default: 5001-5009)
+CHANNEL_START=5001
+CHANNEL_COUNT=9
+
+# Service patterns (customize for your setup)
+SERVICE_PATTERN_RX=rx{port}.service
+SERVICE_PATTERN_REC=rec{port}.service
+SERVICE_PATTERN_RTMP=rtmp{port}.service
+```
 
 ## API Endpoints
 
-### Health Check
-```
-GET /api/health
-```
-Returns server status and whether iLO is configured.
+### Health
 
-### Set Credentials
-```
-POST /api/ilo/credentials
-Content-Type: application/json
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Basic health check |
+| `/api/health/full` | GET | Detailed health with connectivity checks |
 
-{
-  "host": "192.168.1.100",
-  "username": "Administrator",
-  "password": "your-password"
-}
-```
+### iLO Management
 
-### Test Connection
-```
-POST /api/ilo/test
-Content-Type: application/json
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/ilo/status` | GET | Server status (power, health, temps, fans) |
+| `/api/ilo/power/:action` | POST | Power control (powerOn, powerOff, reset, etc.) |
+| `/api/ilo/credentials` | POST | Set iLO credentials |
+| `/api/ilo/test` | POST | Test iLO connection |
+| `/api/ilo/info` | GET | iLO network info and console URL |
 
-{
-  "host": "192.168.1.100",
-  "username": "Administrator", 
-  "password": "your-password"
-}
-```
-Tests connection with provided credentials without saving them.
+### Channels
 
-### Get Server Status
-```
-GET /api/ilo/status
-```
-Returns full server status including:
-- Power state
-- Health status
-- Model and serial number
-- Temperatures (inlet, CPU)
-- Fan speeds
-- Power consumption
-- Uptime
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/channels` | GET | List all channels with service status |
+| `/api/channels/:id` | GET | Single channel details |
+| `/api/channels/:id/config` | GET | Get channel configuration |
+| `/api/channels/:id/config` | PUT | Update channel configuration |
 
-### Power Actions
-```
-POST /api/ilo/power/:action
-```
+### Services
 
-Available actions:
-- `powerOn` - Power on the server
-- `powerOff` - Graceful shutdown
-- `forcePowerOff` - Immediate power off (may cause data loss)
-- `reset` - Graceful restart
-- `forceReset` - Immediate restart
-- `powerCycle` - Power cycle (off then on)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/services/:channelId/:service/:action` | POST | Control single service |
+| `/api/services/bulk/:service/:action` | POST | Bulk operation on multiple channels |
+| `/api/services/status` | GET | Status of all services |
 
-### Get iLO Info
-```
-GET /api/ilo/info
-```
-Returns iLO network information and console URL.
+Service types: `rx`, `rec`, `rtmp`
+Actions: `start`, `stop`, `restart`
 
-## Running as a Service (systemd)
+### Logs
 
-Create `/etc/systemd/system/ilo-proxy.service`:
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/logs/:channelId/:service` | GET | Get logs for a service |
+| `/api/logs/:channelId` | GET | Get logs for all services on a channel |
 
-```ini
-[Unit]
-Description=HP iLO Proxy Server
-After=network.target
+Query parameters:
+- `lines` - Number of log lines (default: 100, max: 200)
+- `since` - Filter logs since timestamp
+- `until` - Filter logs until timestamp
+- `level` - Filter by level (error, warn, info, debug)
 
-[Service]
-Type=simple
-User=your-user
-WorkingDirectory=/path/to/backend
-ExecStart=/usr/bin/node server.js
-Restart=on-failure
-RestartSec=10
-Environment=NODE_ENV=production
+## Examples
 
-[Install]
-WantedBy=multi-user.target
-```
-
-Then:
+### Start a service
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable ilo-proxy
-sudo systemctl start ilo-proxy
+curl -X POST http://localhost:3001/api/services/5001/rx/start
 ```
 
-## Security Considerations
+### Restart all RTMP services
+```bash
+curl -X POST http://localhost:3001/api/services/bulk/rtmp/restart
+```
 
-1. **Run on trusted network** - This server handles iLO credentials
-2. **Use HTTPS in production** - Set `SSL_CERT_PATH` and `SSL_KEY_PATH` 
-3. **Restrict CORS origins** - Only allow your frontend domain
-4. **Firewall** - Only expose to necessary networks
+### Get channel status
+```bash
+curl http://localhost:3001/api/channels/5001
+```
 
-## Connecting from Frontend
+### Get service logs
+```bash
+curl http://localhost:3001/api/logs/5001/rx?lines=50
+```
 
-Update your frontend to point to this server:
+### Control iLO power
+```bash
+curl -X POST http://localhost:3001/api/ilo/power/reset
+```
+
+## Running as a Service
+
+The installer creates a systemd service. Manual setup:
+
+```bash
+# Copy service file
+sudo cp brateshub-controller.service /etc/systemd/system/
+
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Start and enable
+sudo systemctl start brateshub-controller
+sudo systemctl enable brateshub-controller
+
+# Check status
+sudo systemctl status brateshub-controller
+
+# View logs
+sudo journalctl -u brateshub-controller -f
+```
+
+## Security
+
+### sudoers Configuration
+
+The installer creates `/etc/sudoers.d/brateshub-controller` to allow the service user to control streaming services without a password. Only specific systemctl commands are allowed.
+
+### API Key Authentication
+
+Set `API_KEY` in `.env` to require authentication:
+
+```bash
+curl -H "X-API-Key: your-secret-key" http://localhost:3001/api/channels
+```
+
+### CORS
+
+Configure `CORS_ORIGINS` to restrict which domains can access the API.
+
+## IPv6 Support
+
+The server binds to `0.0.0.0` which supports both IPv4 and IPv6 on most systems. For IPv6-only binding, modify `src/server.js`:
 
 ```javascript
-const API_BASE = 'http://your-server:3001/api';
-
-// Test connection
-const response = await fetch(`${API_BASE}/ilo/status`);
-const data = await response.json();
+app.listen(PORT, '::', () => { ... });
 ```
 
 ## Troubleshooting
 
-### Connection refused
-- Check if iLO is reachable: `curl -k https://ILO_IP/redfish/v1`
-- Verify credentials work in iLO web interface
+### Service not found
+- Check service naming pattern in `.env`
+- Verify services exist: `systemctl list-units 'rx*.service'`
+
+### Permission denied
+- Check sudoers configuration: `sudo visudo -cf /etc/sudoers.d/brateshub-controller`
+- Verify user: `id brateshub`
+
+### iLO connection failed
+- Test direct access: `curl -k https://ILO_IP/redfish/v1/`
+- Verify credentials in iLO web interface
 
 ### CORS errors
-- Add your frontend URL to `CORS_ORIGINS` in `.env`
-- Restart the server after changing `.env`
+- Add your frontend URL to `CORS_ORIGINS`
+- Restart the service after changing `.env`
 
-### Certificate errors
-- The server ignores self-signed certificates by default
-- If using custom CA, you may need to configure it
+## Development
 
-## IPv6 Support
+```bash
+# Run with auto-reload
+npm run dev
 
-The server binds to `0.0.0.0` which includes IPv6 on most systems. For IPv6-only:
-
-```javascript
-// In server.js, change the listen call to:
-app.listen(PORT, '::', () => { ... });
+# Enable debug logging
+LOG_LEVEL=debug npm run dev
 ```
+
+## License
+
+MIT

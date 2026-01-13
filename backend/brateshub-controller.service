@@ -1,0 +1,34 @@
+[Unit]
+Description=BratesHUB Controller Backend
+Documentation=https://github.com/yourusername/brateshub-controller-backend
+After=network.target
+
+[Service]
+Type=simple
+User=brateshub
+Group=brateshub
+WorkingDirectory=/opt/brateshub-controller
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=10
+
+# Environment
+Environment=NODE_ENV=production
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/brateshub-controller
+PrivateTmp=true
+
+# Limits
+LimitNOFILE=65535
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=brateshub-controller
+
+[Install]
+WantedBy=multi-user.target
