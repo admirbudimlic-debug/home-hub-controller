@@ -3,6 +3,7 @@ import { Header } from '@/components/Header';
 import { ChannelCard } from '@/components/ChannelCard';
 import { ChannelDetailModal } from '@/components/ChannelDetailModal';
 import { BulkControls } from '@/components/BulkControls';
+import { IloControlPanel } from '@/components/IloControlPanel';
 import { Channel, ServiceType } from '@/types/channel';
 import { api } from '@/services/mockApi';
 import { useToast } from '@/hooks/use-toast';
@@ -127,6 +128,9 @@ const Index = () => {
       />
 
       <main className="container py-6 space-y-6">
+        {/* iLO Control Panel */}
+        <IloControlPanel />
+
         {/* Stats bar */}
         <div className="grid grid-cols-3 gap-4">
           {stats.map(({ key, label, count, icon: Icon, colorClass, borderClass }) => (
