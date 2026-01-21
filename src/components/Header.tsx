@@ -1,5 +1,6 @@
-import { Server, Activity, RefreshCw, Wifi } from 'lucide-react';
+import { Server, RefreshCw, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BackendSettings } from '@/components/BackendSettings';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
@@ -63,6 +64,9 @@ export function Header({ onRefresh, isRefreshing, lastUpdated }: HeaderProps) {
               </span>
             )}
           </div>
+
+          {/* Backend Settings */}
+          <BackendSettings />
 
           {/* Refresh button */}
           <Button

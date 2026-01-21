@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ChannelConfig, ServiceType } from '@/types/channel';
-import { api } from '@/services/mockApi';
+import { api } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
 interface ConfigEditorProps {

@@ -10,7 +10,7 @@ import { BitrateIndicator } from './BitrateIndicator';
 import { PidTable } from './PidTable';
 import { Channel, ServiceType } from '@/types/channel';
 import { useStreamAnalysis } from '@/hooks/useStreamAnalysis';
-import { api } from '@/services/mockApi';
+import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
 
 interface ChannelDetailModalProps {
