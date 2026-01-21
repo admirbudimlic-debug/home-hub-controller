@@ -6,6 +6,7 @@ import { BulkControls } from '@/components/BulkControls';
 import { IloControlPanel } from '@/components/IloControlPanel';
 import { Channel, ServiceType } from '@/types/channel';
 import { api } from '@/services/mockApi';
+import { useChannelAnalysis } from '@/hooks/useStreamAnalysis';
 import { useToast } from '@/hooks/use-toast';
 import { Radio, HardDrive, Cast } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ const Index = () => {
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const [isBulkLoading, setIsBulkLoading] = useState(false);
+  const { analyses } = useChannelAnalysis(2000); // Refresh every 2 seconds
   const { toast } = useToast();
 
   const fetchChannels = useCallback(async (showLoading = false) => {
@@ -179,6 +181,7 @@ const Index = () => {
               <ChannelCard
                 key={channel.id}
                 channel={channel}
+                analysis={analyses[channel.id]}
                 onServiceAction={handleServiceAction}
                 onOpenDetail={setSelectedChannelId}
                 loadingStates={loadingStates}

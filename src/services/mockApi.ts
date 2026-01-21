@@ -1,4 +1,5 @@
 import { Channel, ChannelConfig, LogEntry, ServiceStatus, ServiceType, ApiResponse } from '@/types/channel';
+import { StreamAnalysis, ChannelAnalysis } from '@/types/stream';
 
 // Simulated channel data
 const generateMockChannel = (id: number): Channel => {
@@ -214,5 +215,80 @@ export const api = {
       await api.restartService(channelId, service);
     }
     return { success: true };
+  },
+
+  // Get stream analysis for all channels
+  async getStreamAnalyses(): Promise<ApiResponse<ChannelAnalysis[]>> {
+    await delay(200);
+    const analyses: ChannelAnalysis[] = mockChannels.map(ch => {
+      const isActive = ch.rx.status === 'running';
+      if (!isActive) {
+        return {
+          channelId: ch.id,
+          available: false,
+          timestamp: new Date().toISOString(),
+        };
+      }
+      const baseBitrate = 20 + Math.random() * 10;
+      return {
+        channelId: ch.id,
+        available: true,
+        timestamp: new Date().toISOString(),
+        bitrate: {
+          total: Math.round(baseBitrate * 1_000_000),
+          totalMbps: baseBitrate.toFixed(2),
+        },
+      };
+    });
+    return { success: true, data: analyses };
+  },
+
+  // Get detailed stream analysis for a single channel
+  async getStreamAnalysis(channelId: number): Promise<ApiResponse<StreamAnalysis>> {
+    await delay(300);
+    const channel = mockChannels.find(c => c.id === channelId);
+    if (!channel) {
+      return { success: false, error: 'Channel not found' };
+    }
+    
+    const isActive = channel.rx.status === 'running';
+    if (!isActive) {
+      return {
+        success: true,
+        data: {
+          available: false,
+          timestamp: new Date().toISOString(),
+          error: 'Stream not available',
+        },
+      };
+    }
+
+    const baseBitrate = 20_000_000 + Math.random() * 10_000_000;
+    
+    return {
+      success: true,
+      data: {
+        available: true,
+        timestamp: new Date().toISOString(),
+        bitrate: {
+          total: Math.round(baseBitrate),
+          totalMbps: (baseBitrate / 1_000_000).toFixed(2),
+        },
+        pids: [
+          { pid: 0, type: 'PAT', bitrate: 15000, bitrateMbps: '0.015', percentage: '0.1', scrambled: false, discontinuities: 0 },
+          { pid: 17, type: 'SDT', bitrate: 3000, bitrateMbps: '0.003', percentage: '0.0', scrambled: false, discontinuities: 0 },
+          { pid: 256, type: 'PMT', bitrate: 15000, bitrateMbps: '0.015', percentage: '0.1', scrambled: false, discontinuities: 0 },
+          { pid: 257, type: 'Video (HEVC)', bitrate: Math.round(baseBitrate * 0.85), bitrateMbps: (baseBitrate * 0.85 / 1_000_000).toFixed(3), percentage: '85.0', scrambled: false, discontinuities: 0 },
+          { pid: 258, type: 'Audio (AAC)', bitrate: Math.round(baseBitrate * 0.08), bitrateMbps: (baseBitrate * 0.08 / 1_000_000).toFixed(3), percentage: '8.0', scrambled: false, discontinuities: 0 },
+          { pid: 259, type: 'Audio (AC3)', bitrate: Math.round(baseBitrate * 0.05), bitrateMbps: (baseBitrate * 0.05 / 1_000_000).toFixed(3), percentage: '5.0', scrambled: false, discontinuities: Math.floor(Math.random() * 3) },
+        ],
+        services: [
+          { id: 1, name: `Channel ${channelId} HD`, provider: 'BratesHUB', type: 'Digital TV', pmtPid: 256, pcrPid: 257 },
+        ],
+        packets: Math.round(baseBitrate / 188),
+        invalid: 0,
+        suspectIgnored: 0,
+      },
+    };
   },
 };

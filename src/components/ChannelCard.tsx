@@ -3,11 +3,14 @@ import { Radio, HardDrive, Cast, ChevronRight, Copy, Check, Zap } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from './StatusBadge';
 import { ServiceControl } from './ServiceControl';
+import { BitrateIndicator } from './BitrateIndicator';
 import { Channel, ServiceType } from '@/types/channel';
+import { ChannelAnalysis } from '@/types/stream';
 import { cn } from '@/lib/utils';
 
 interface ChannelCardProps {
   channel: Channel;
+  analysis?: ChannelAnalysis;
   onServiceAction: (channelId: number, service: ServiceType, action: 'start' | 'stop' | 'restart') => Promise<void>;
   onOpenDetail: (channelId: number) => void;
   loadingStates: Record<string, boolean>;
@@ -37,7 +40,7 @@ const serviceBgColors = {
   rtmp: 'bg-rtmp/5',
 };
 
-export function ChannelCard({ channel, onServiceAction, onOpenDetail, loadingStates }: ChannelCardProps) {
+export function ChannelCard({ channel, analysis, onServiceAction, onOpenDetail, loadingStates }: ChannelCardProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, field: string) => {
@@ -134,9 +137,18 @@ export function ChannelCard({ channel, onServiceAction, onOpenDetail, loadingSta
           })}
         </div>
 
-        {/* Right side info */}
+        {/* Right side info with bitrate */}
         <div className="flex items-center gap-4 px-5 py-4 border-l border-border/40">
-          <div className="text-right text-xs space-y-1">
+          <div className="text-right text-xs space-y-1.5">
+            {/* Bitrate indicator */}
+            <div className="flex items-center justify-end">
+              <BitrateIndicator
+                bitrateMbps={analysis?.bitrate?.totalMbps || null}
+                available={analysis?.available || false}
+                compact
+                showLabel
+              />
+            </div>
             <div className="flex items-center gap-2 text-muted-foreground justify-end">
               <span className="uppercase tracking-wider text-[10px]">Out</span>
               <code className="rounded bg-secondary/80 px-1.5 py-0.5 font-mono text-foreground/80 border border-border/50">

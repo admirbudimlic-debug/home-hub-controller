@@ -20,6 +20,7 @@ const iloRoutes = require('./routes/ilo');
 const channelsRoutes = require('./routes/channels');
 const servicesRoutes = require('./routes/services');
 const logsRoutes = require('./routes/logs');
+const analyzeRoutes = require('./routes/analyze');
 
 const app = express();
 
@@ -69,6 +70,7 @@ app.use('/api/ilo', iloRoutes);
 app.use('/api/channels', channelsRoutes);
 app.use('/api/services', servicesRoutes);
 app.use('/api/logs', logsRoutes);
+app.use('/api/analyze', analyzeRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -102,6 +104,9 @@ app.listen(PORT, '0.0.0.0', () => {
   logger.info('  POST /api/services/:channelId/:service/:action');
   logger.info('  POST /api/services/bulk/:service/:action');
   logger.info('  GET  /api/logs/:channelId/:service');
+  logger.info('  GET  /api/analyze');
+  logger.info('  GET  /api/analyze/:channelId');
+  logger.info('  GET  /api/analyze/:channelId/bitrate');
   logger.info('='.repeat(50));
 });
 
