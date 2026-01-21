@@ -1,0 +1,36 @@
+[Unit]
+Description=BratesHUB RTMP Output - Channel %i
+Documentation=https://ffmpeg.org/
+After=rx@%i.service
+BindsTo=rx@%i.service
+
+[Service]
+Type=simple
+ExecStart=/opt/brateshub/bin/rtmp-start.sh %i
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
+
+# Run as brateshub user
+User=brateshub
+Group=brateshub
+
+# Environment
+Environment=CONFIG_DIR=/opt/brateshub/configs
+Environment=FIFO_DIR=/var/run/brateshub
+EnvironmentFile=-/opt/brateshub/configs/channel%i.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rtmp@%i
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/run/brateshub /opt/brateshub/logs
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,37 @@
+[Unit]
+Description=BratesHUB Recorder - Channel %i
+Documentation=https://tsduck.io/
+After=rx@%i.service
+BindsTo=rx@%i.service
+
+[Service]
+Type=simple
+ExecStart=/opt/brateshub/bin/rec-start.sh %i
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+# Run as brateshub user
+User=brateshub
+Group=brateshub
+
+# Environment
+Environment=CONFIG_DIR=/opt/brateshub/configs
+Environment=FIFO_DIR=/var/run/brateshub
+Environment=REC_BASE_DIR=/opt/brateshub/recordings
+EnvironmentFile=-/opt/brateshub/configs/channel%i.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rec@%i
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/run/brateshub /opt/brateshub/recordings /opt/brateshub/logs
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
