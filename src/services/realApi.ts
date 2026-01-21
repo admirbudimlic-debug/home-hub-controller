@@ -40,29 +40,50 @@ export const realApi = {
     return fetchApi<Channel>(`/api/channels/${id}`);
   },
 
+  // Create new channel
+  async createChannel(channelId: number, name: string, config?: Partial<ChannelConfig>): Promise<ApiResponse<ChannelConfig>> {
+    return fetchApi<ChannelConfig>('/api/channels', {
+      method: 'POST',
+      body: JSON.stringify({ channelId, name, ...config }),
+    });
+  },
+
+  // Update channel
+  async updateChannel(id: number, updates: Partial<ChannelConfig>): Promise<ApiResponse<ChannelConfig>> {
+    return fetchApi<ChannelConfig>(`/api/channels/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  },
+
+  // Delete channel
+  async deleteChannel(id: number): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/api/channels/${id}`, { method: 'DELETE' });
+  },
+
   // Get logs for a service
   async getLogs(channelId: number, service: ServiceType, lines: number = 50): Promise<ApiResponse<LogEntry[]>> {
-    return fetchApi<LogEntry[]>(`/api/logs/${5000 + channelId}/${service}?lines=${lines}`);
+    return fetchApi<LogEntry[]>(`/api/logs/${channelId}/${service}?lines=${lines}`);
   },
 
   // Start a service
   async startService(channelId: number, service: ServiceType): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/api/services/${5000 + channelId}/${service}/start`, { method: 'POST' });
+    return fetchApi<void>(`/api/services/${channelId}/${service}/start`, { method: 'POST' });
   },
 
   // Stop a service
   async stopService(channelId: number, service: ServiceType): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/api/services/${5000 + channelId}/${service}/stop`, { method: 'POST' });
+    return fetchApi<void>(`/api/services/${channelId}/${service}/stop`, { method: 'POST' });
   },
 
   // Restart a service
   async restartService(channelId: number, service: ServiceType): Promise<ApiResponse<void>> {
-    return fetchApi<void>(`/api/services/${5000 + channelId}/${service}/restart`, { method: 'POST' });
+    return fetchApi<void>(`/api/services/${channelId}/${service}/restart`, { method: 'POST' });
   },
 
   // Bulk operations
   async bulkOperation(service: ServiceType, action: 'start' | 'stop' | 'restart', channelIds?: number[]): Promise<ApiResponse<void>> {
-    const body = channelIds ? { channelIds: channelIds.map(id => 5000 + id) } : {};
+    const body = channelIds ? { channelIds } : {};
     return fetchApi<void>(`/api/services/bulk/${service}/${action}`, { 
       method: 'POST',
       body: JSON.stringify(body),
@@ -97,13 +118,17 @@ export const realApi = {
   },
 
   // Get stream analysis for all channels (lightweight bitrate only)
-  async getStreamAnalyses(): Promise<ApiResponse<ChannelAnalysis[]>> {
-    // Fetch analyses for all 9 channels in parallel
-    const promises = Array.from({ length: 9 }, (_, i) => 
+  async getStreamAnalyses(channelIds: number[]): Promise<ApiResponse<ChannelAnalysis[]>> {
+    if (channelIds.length === 0) {
+      return { success: true, data: [] };
+    }
+    
+    // Fetch analyses for provided channel IDs in parallel
+    const promises = channelIds.map(id => 
       fetchApi<{ available: boolean; bitrate?: { total: number; totalMbps: string } }>(
-        `/api/analyze/${5001 + i}/bitrate`
+        `/api/analyze/${id}/bitrate`
       ).then(result => ({
-        channelId: i + 1,
+        channelId: id,
         available: result.success && result.data?.available,
         timestamp: new Date().toISOString(),
         bitrate: result.success && result.data?.available ? result.data.bitrate : undefined,
@@ -116,6 +141,6 @@ export const realApi = {
 
   // Get detailed stream analysis for a single channel
   async getStreamAnalysis(channelId: number): Promise<ApiResponse<StreamAnalysis>> {
-    return fetchApi<StreamAnalysis>(`/api/analyze/${5000 + channelId}`);
+    return fetchApi<StreamAnalysis>(`/api/analyze/${channelId}`);
   },
 };

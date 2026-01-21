@@ -3,15 +3,20 @@ import { ChannelAnalysis, StreamAnalysis } from '@/types/stream';
 import { api } from '@/services/api';
 
 // Hook for bulk channel bitrate monitoring
-export function useChannelAnalysis(refreshInterval = 2000) {
+export function useChannelAnalysis(refreshInterval = 2000, channelIds: number[] = []) {
   const [analyses, setAnalyses] = useState<Record<number, ChannelAnalysis>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchAnalyses = useCallback(async () => {
+    if (channelIds.length === 0) {
+      setIsLoading(false);
+      return;
+    }
+    
     try {
-      const result = await api.getStreamAnalyses();
+      const result = await api.getStreamAnalyses(channelIds);
       if (result.success && result.data) {
         const analysisMap: Record<number, ChannelAnalysis> = {};
         for (const analysis of result.data) {
@@ -25,7 +30,7 @@ export function useChannelAnalysis(refreshInterval = 2000) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [channelIds]);
 
   useEffect(() => {
     fetchAnalyses();

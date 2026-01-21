@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { ChannelCard } from '@/components/ChannelCard';
 import { ChannelDetailModal } from '@/components/ChannelDetailModal';
 import { BulkControls } from '@/components/BulkControls';
 import { IloControlPanel } from '@/components/IloControlPanel';
+import { CreateChannelDialog } from '@/components/CreateChannelDialog';
 import { Channel, ServiceType } from '@/types/channel';
 import { api } from '@/services/api';
 import { useChannelAnalysis } from '@/hooks/useStreamAnalysis';
 import { useToast } from '@/hooks/use-toast';
-import { Radio, HardDrive, Cast } from 'lucide-react';
+import { Radio, HardDrive, Cast, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Index = () => {
@@ -19,8 +20,11 @@ const Index = () => {
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const [isBulkLoading, setIsBulkLoading] = useState(false);
-  const { analyses } = useChannelAnalysis(2000); // Refresh every 2 seconds
   const { toast } = useToast();
+
+  // Get channel IDs for analysis
+  const channelIds = useMemo(() => channels.map(c => c.id), [channels]);
+  const { analyses } = useChannelAnalysis(2000, channelIds);
 
   const fetchChannels = useCallback(async (showLoading = false) => {
     if (showLoading) setIsLoading(true);
@@ -67,14 +71,14 @@ const Index = () => {
       if (response.success) {
         toast({
           title: `${service.toUpperCase()} ${action}ed`,
-          description: `Channel 500${channelId} ${service.toUpperCase()} has been ${action}ed.`,
+          description: `Channel ${channelId} ${service.toUpperCase()} has been ${action}ed.`,
         });
         await fetchChannels(false);
       }
     } catch (error) {
       toast({
         title: 'Action failed',
-        description: `Failed to ${action} ${service.toUpperCase()} on channel 500${channelId}.`,
+        description: `Failed to ${action} ${service.toUpperCase()} on channel ${channelId}.`,
         variant: 'destructive',
       });
     }
@@ -86,7 +90,7 @@ const Index = () => {
     setIsBulkLoading(true);
 
     try {
-      const response = await api.bulkOperation(service, action);
+      const response = await api.bulkOperation(service, action, channelIds);
       if (response.success) {
         toast({
           title: `Bulk ${action} complete`,
@@ -114,6 +118,8 @@ const Index = () => {
     }),
     { rx: 0, rec: 0, rtmp: 0 }
   );
+
+  const totalChannels = channels.length;
 
   const stats = [
     { key: 'rx', label: 'RX Active', count: runningCounts.rx, icon: Radio, colorClass: 'text-rx', borderClass: 'border-l-rx' },
@@ -151,29 +157,56 @@ const Index = () => {
               </div>
               <div className="flex items-baseline gap-1">
                 <span className={cn("text-2xl font-bold tabular-nums", colorClass)}>{count}</span>
-                <span className="text-sm text-muted-foreground">/9</span>
+                <span className="text-sm text-muted-foreground">/{totalChannels}</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Bulk controls */}
-        <BulkControls onBulkAction={handleBulkAction} isLoading={isBulkLoading} />
+        {channels.length > 0 && (
+          <BulkControls onBulkAction={handleBulkAction} isLoading={isBulkLoading} />
+        )}
 
-        {/* Section divider */}
+        {/* Section divider with Add Channel button */}
         <div className="relative py-2">
           <div className="section-divider" />
-          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-4 text-xs uppercase tracking-widest text-muted-foreground">
-            Channels
-          </span>
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-4 bg-background px-4">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">
+              Channels
+            </span>
+            <CreateChannelDialog 
+              existingIds={channelIds} 
+              onCreated={() => fetchChannels(false)} 
+            />
+          </div>
         </div>
 
         {/* Channel list */}
         {isLoading ? (
           <div className="space-y-3">
-            {Array.from({ length: 9 }).map((_, i) => (
+            {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="h-20 animate-pulse rounded-lg bg-card border border-border/40" />
             ))}
+          </div>
+        ) : channels.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className={cn(
+              "flex h-16 w-16 items-center justify-center rounded-full mb-4",
+              "bg-gradient-to-br from-muted/50 to-muted/20",
+              "border border-border/50"
+            )}>
+              <Inbox className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No Channels</h3>
+            <p className="text-muted-foreground max-w-md mb-6">
+              Get started by adding your first streaming channel. Each channel can have its own SRT input, 
+              recording settings, and RTMP output configuration.
+            </p>
+            <CreateChannelDialog 
+              existingIds={[]} 
+              onCreated={() => fetchChannels(false)} 
+            />
           </div>
         ) : (
           <div className="space-y-2">

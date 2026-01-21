@@ -15,6 +15,18 @@ export const api = {
     return realApi.getChannel(id);
   },
 
+  createChannel(channelId: number, name: string, config?: Partial<ChannelConfig>): Promise<ApiResponse<ChannelConfig>> {
+    return realApi.createChannel(channelId, name, config);
+  },
+
+  updateChannel(id: number, updates: Partial<ChannelConfig>): Promise<ApiResponse<ChannelConfig>> {
+    return realApi.updateChannel(id, updates);
+  },
+
+  deleteChannel(id: number): Promise<ApiResponse<void>> {
+    return realApi.deleteChannel(id);
+  },
+
   getLogs(channelId: number, service: ServiceType, lines?: number): Promise<ApiResponse<LogEntry[]>> {
     return realApi.getLogs(channelId, service, lines);
   },
@@ -47,8 +59,8 @@ export const api = {
     return realApi.applyConfig(channelId, config, restartServices);
   },
 
-  getStreamAnalyses(): Promise<ApiResponse<ChannelAnalysis[]>> {
-    return realApi.getStreamAnalyses();
+  getStreamAnalyses(channelIds: number[]): Promise<ApiResponse<ChannelAnalysis[]>> {
+    return realApi.getStreamAnalyses(channelIds);
   },
 
   getStreamAnalysis(channelId: number): Promise<ApiResponse<StreamAnalysis>> {

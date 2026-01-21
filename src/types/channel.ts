@@ -11,10 +11,14 @@ export interface ServiceState {
 }
 
 export interface SrtConfig {
-  // SRT Caller mode settings
-  mode: 'caller';
-  targetHost: string;
-  targetPort: number;
+  // SRT Mode - caller or listener
+  mode: 'caller' | 'listener';
+  // Caller mode settings
+  targetHost?: string;
+  targetPort?: number;
+  // Listener mode settings (listen on this port)
+  listenPort?: number;
+  // Common settings
   streamId?: string;
   latencyMs?: number;
   bandwidthOverhead?: number;
@@ -44,21 +48,33 @@ export interface RecConfig {
   repackPath?: string;
 }
 
+// Audio pair selection - some sources have multiple audio tracks
+export type AudioPair = 'primary' | 'secondary' | 'both';
+
 export interface RtmpConfig {
   rtmpEnabled: boolean;
   rtmpUrl?: string;
   rtmpStreamKey?: string;
-  rtmpVideoBitrate?: number;
-  rtmpAudioBitrate?: number;
-  // Video encoding settings
-  videoCodec?: 'libx264' | 'copy';
-  videoPreset?: 'ultrafast' | 'superfast' | 'veryfast' | 'faster' | 'fast' | 'medium';
-  // Audio encoding settings  
+  // Video settings
+  videoCodec?: 'libx264' | 'libx265' | 'copy';
+  videoPreset?: 'ultrafast' | 'superfast' | 'veryfast' | 'faster' | 'fast' | 'medium' | 'slow';
+  videoBitrate?: number; // kbps
+  videoWidth?: number;
+  videoHeight?: number;
+  videoFps?: number;
+  gopSize?: number; // keyframe interval
+  // Audio settings
   audioCodec?: 'aac' | 'copy';
+  audioBitrate?: number; // kbps
+  audioSampleRate?: 48000 | 44100;
+  audioPair?: AudioPair;
+  // Quality presets
+  qualityPreset?: 'passthrough' | '1080p' | '720p' | '480p' | 'custom';
 }
 
 export interface ChannelConfig {
   channelId: number;
+  name: string;
   rx: RxConfig;
   rec: RecConfig;
   rtmp: RtmpConfig;
@@ -67,6 +83,7 @@ export interface ChannelConfig {
 
 export interface Channel {
   id: number;
+  name: string;
   rx: ServiceState;
   rec: ServiceState;
   rtmp: ServiceState;
