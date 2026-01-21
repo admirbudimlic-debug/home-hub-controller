@@ -1,4 +1,5 @@
-import { Server, RefreshCw, Wifi } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Server, RefreshCw, Wifi, Settings as SettingsIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BackendSettings } from '@/components/BackendSettings';
 import { cn } from '@/lib/utils';
@@ -10,6 +11,8 @@ interface HeaderProps {
 }
 
 export function Header({ onRefresh, isRefreshing, lastUpdated }: HeaderProps) {
+  const navigate = useNavigate();
+
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-xl">
       {/* Top accent line */}
@@ -64,6 +67,22 @@ export function Header({ onRefresh, isRefreshing, lastUpdated }: HeaderProps) {
               </span>
             )}
           </div>
+
+          {/* Settings Page Link */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/settings')}
+            className={cn(
+              "gap-2 text-muted-foreground hover:text-foreground",
+              "border border-transparent hover:border-border/50"
+            )}
+          >
+            <SettingsIcon className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs uppercase tracking-wider">
+              Settings
+            </span>
+          </Button>
 
           {/* Backend Settings */}
           <BackendSettings />

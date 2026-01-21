@@ -10,29 +10,58 @@ export interface ServiceState {
   lastFailureTime?: string;
 }
 
+export interface SrtConfig {
+  // SRT Caller mode settings
+  mode: 'caller';
+  targetHost: string;
+  targetPort: number;
+  streamId?: string;
+  latencyMs?: number;
+  bandwidthOverhead?: number;
+  // Optional passphrase for encryption
+  passphrase?: string;
+  pbkeylen?: 16 | 24 | 32;
+}
+
+export interface RxConfig {
+  srt: SrtConfig;
+  maxBitrateMbps?: number;
+  // Multicast output
+  multicastEnabled: boolean;
+  multicastDstIp?: string;
+  multicastDstPort?: number;
+  interface?: string;
+}
+
+export interface RecConfig {
+  recordEnabled: boolean;
+  recordPath: string;
+  // Recording filename template (e.g., "channel_%Y%m%d_%H%M%S")
+  filenameTemplate?: string;
+  segmentMode?: boolean;
+  segmentDurationSec?: number;
+  repackToMp4: boolean;
+  repackPath?: string;
+}
+
+export interface RtmpConfig {
+  rtmpEnabled: boolean;
+  rtmpUrl?: string;
+  rtmpStreamKey?: string;
+  rtmpVideoBitrate?: number;
+  rtmpAudioBitrate?: number;
+  // Video encoding settings
+  videoCodec?: 'libx264' | 'copy';
+  videoPreset?: 'ultrafast' | 'superfast' | 'veryfast' | 'faster' | 'fast' | 'medium';
+  // Audio encoding settings  
+  audioCodec?: 'aac' | 'copy';
+}
+
 export interface ChannelConfig {
   channelId: number;
-  rx: {
-    srtListenPort: number;
-    maxBitrateMbps?: number;
-    multicastEnabled: boolean;
-    multicastDstIp?: string;
-    multicastDstPort?: number;
-    interface?: string;
-  };
-  rec: {
-    recordEnabled: boolean;
-    recordPath: string;
-    segmentMode?: boolean;
-    repackToMp4: boolean;
-    repackPath?: string;
-  };
-  rtmp: {
-    rtmpEnabled: boolean;
-    rtmpUrl?: string;
-    rtmpVideoBitrate?: number;
-    rtmpAudioBitrate?: number;
-  };
+  rx: RxConfig;
+  rec: RecConfig;
+  rtmp: RtmpConfig;
   extraArgs?: string;
 }
 

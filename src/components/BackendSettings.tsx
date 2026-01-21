@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Settings, Wifi, WifiOff, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { Settings, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -46,15 +45,6 @@ export function BackendSettings() {
     setOpen(false);
   };
 
-  const handleModeToggle = (checked: boolean) => {
-    const newMode = checked ? 'live' : 'mock';
-    setConfig(prev => ({ ...prev, mode: newMode }));
-    setBackendConfig({ mode: newMode });
-  };
-
-  const currentConfig = getBackendConfig();
-  const isLive = currentConfig.mode === 'live';
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -66,15 +56,9 @@ export function BackendSettings() {
             "border border-transparent hover:border-border/50"
           )}
         >
-          <div className="relative">
-            <Settings className="h-4 w-4" />
-            <div className={cn(
-              "absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full border border-background",
-              isLive ? "bg-status-running" : "bg-muted-foreground"
-            )} />
-          </div>
+          <Settings className="h-4 w-4" />
           <span className="hidden sm:inline text-xs uppercase tracking-wider">
-            {isLive ? 'Live' : 'Mock'}
+            Backend
           </span>
         </Button>
       </DialogTrigger>
@@ -90,31 +74,6 @@ export function BackendSettings() {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Mode Toggle */}
-          <div className="flex items-center justify-between rounded-lg border border-border/60 p-4">
-            <div className="flex items-center gap-3">
-              {config.mode === 'live' ? (
-                <Wifi className="h-5 w-5 text-status-running" />
-              ) : (
-                <WifiOff className="h-5 w-5 text-muted-foreground" />
-              )}
-              <div>
-                <Label className="text-sm font-medium">
-                  {config.mode === 'live' ? 'Live Mode' : 'Mock Mode'}
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {config.mode === 'live' 
-                    ? 'Connected to real backend server' 
-                    : 'Using simulated data'}
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={config.mode === 'live'}
-              onCheckedChange={handleModeToggle}
-            />
-          </div>
-
           {/* Backend URL */}
           <div className="space-y-2">
             <Label htmlFor="backend-url">Backend URL</Label>
@@ -141,7 +100,7 @@ export function BackendSettings() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              The URL of your BratesHUB backend server (e.g., http://server-ip:3001)
+              Examples: <code className="text-primary/80">http://192.168.1.100:3001</code> or <code className="text-primary/80">http://[2a04:ee41::1]:3001</code> (IPv6)
             </p>
           </div>
 
