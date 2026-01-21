@@ -2,15 +2,44 @@
 
 export interface BackendConfig {
   url: string;
-  mode: 'mock' | 'live';
 }
 
 const STORAGE_KEY = 'brateshub-backend-config';
 
 const DEFAULT_CONFIG: BackendConfig = {
   url: 'http://localhost:3001',
-  mode: 'mock',
 };
+
+/**
+ * Normalize URL to handle IPv6 addresses
+ * Converts: http://2a04:ee41:82:f38a::1:3001
+ * To:       http://[2a04:ee41:82:f38a::1]:3001
+ */
+function normalizeUrl(input: string): string {
+  // Trim trailing slash
+  let url = input.replace(/\/+$/, '');
+  
+  // Already has brackets - assume correctly formatted
+  if (url.includes('[')) {
+    return url;
+  }
+
+  // Try to detect IPv6 without brackets
+  // Pattern: protocol://ipv6address:port
+  const ipv6Match = url.match(
+    /^(https?:\/\/)([a-fA-F0-9:]+):(\d+)(\/.*)?$/
+  );
+
+  if (ipv6Match) {
+    const [, protocol, ipv6, port, path = ''] = ipv6Match;
+    // Check if it looks like IPv6 (multiple colons)
+    if ((ipv6.match(/:/g) || []).length > 1) {
+      return `${protocol}[${ipv6}]:${port}${path}`;
+    }
+  }
+
+  return url;
+}
 
 export function getBackendConfig(): BackendConfig {
   try {
@@ -26,22 +55,22 @@ export function getBackendConfig(): BackendConfig {
 
 export function setBackendConfig(config: Partial<BackendConfig>): void {
   const current = getBackendConfig();
-  const updated = { ...current, ...config };
+  const updated = { 
+    ...current, 
+    ...config,
+    url: config.url ? normalizeUrl(config.url) : current.url
+  };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   // Dispatch event for components to react to config changes
   window.dispatchEvent(new CustomEvent('backend-config-change', { detail: updated }));
 }
 
-export function isLiveMode(): boolean {
-  return getBackendConfig().mode === 'live';
-}
-
 export function getBackendUrl(): string {
-  return getBackendConfig().url;
+  return normalizeUrl(getBackendConfig().url);
 }
 
 export async function testBackendConnection(url?: string): Promise<{ success: boolean; message: string }> {
-  const targetUrl = url || getBackendUrl();
+  const targetUrl = normalizeUrl(url || getBackendUrl());
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);

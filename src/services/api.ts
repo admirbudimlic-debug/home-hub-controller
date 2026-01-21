@@ -1,58 +1,57 @@
-// Unified API layer that routes to mock or real API based on configuration
+// API layer that connects directly to the backend
+// Mock mode has been removed - all requests go to the real backend
 
 import { Channel, ChannelConfig, LogEntry, ServiceType, ApiResponse } from '@/types/channel';
 import { StreamAnalysis, ChannelAnalysis } from '@/types/stream';
-import { isLiveMode } from './backendConfig';
-import { api as mockApi } from './mockApi';
 import { realApi } from './realApi';
 
-// Unified API that switches between mock and real based on config
+// Unified API that directly uses the real backend
 export const api = {
   getChannels(): Promise<ApiResponse<Channel[]>> {
-    return isLiveMode() ? realApi.getChannels() : mockApi.getChannels();
+    return realApi.getChannels();
   },
 
   getChannel(id: number): Promise<ApiResponse<Channel>> {
-    return isLiveMode() ? realApi.getChannel(id) : mockApi.getChannel(id);
+    return realApi.getChannel(id);
   },
 
   getLogs(channelId: number, service: ServiceType, lines?: number): Promise<ApiResponse<LogEntry[]>> {
-    return isLiveMode() ? realApi.getLogs(channelId, service, lines) : mockApi.getLogs(channelId, service, lines);
+    return realApi.getLogs(channelId, service, lines);
   },
 
   startService(channelId: number, service: ServiceType): Promise<ApiResponse<void>> {
-    return isLiveMode() ? realApi.startService(channelId, service) : mockApi.startService(channelId, service);
+    return realApi.startService(channelId, service);
   },
 
   stopService(channelId: number, service: ServiceType): Promise<ApiResponse<void>> {
-    return isLiveMode() ? realApi.stopService(channelId, service) : mockApi.stopService(channelId, service);
+    return realApi.stopService(channelId, service);
   },
 
   restartService(channelId: number, service: ServiceType): Promise<ApiResponse<void>> {
-    return isLiveMode() ? realApi.restartService(channelId, service) : mockApi.restartService(channelId, service);
+    return realApi.restartService(channelId, service);
   },
 
   bulkOperation(service: ServiceType, action: 'start' | 'stop' | 'restart', channelIds?: number[]): Promise<ApiResponse<void>> {
-    return isLiveMode() ? realApi.bulkOperation(service, action, channelIds) : mockApi.bulkOperation(service, action, channelIds);
+    return realApi.bulkOperation(service, action, channelIds);
   },
 
   getConfig(channelId: number): Promise<ApiResponse<ChannelConfig>> {
-    return isLiveMode() ? realApi.getConfig(channelId) : mockApi.getConfig(channelId);
+    return realApi.getConfig(channelId);
   },
 
   saveConfig(channelId: number, config: ChannelConfig): Promise<ApiResponse<void>> {
-    return isLiveMode() ? realApi.saveConfig(channelId, config) : mockApi.saveConfig(channelId, config);
+    return realApi.saveConfig(channelId, config);
   },
 
   applyConfig(channelId: number, config: ChannelConfig, restartServices: ServiceType[]): Promise<ApiResponse<void>> {
-    return isLiveMode() ? realApi.applyConfig(channelId, config, restartServices) : mockApi.applyConfig(channelId, config, restartServices);
+    return realApi.applyConfig(channelId, config, restartServices);
   },
 
   getStreamAnalyses(): Promise<ApiResponse<ChannelAnalysis[]>> {
-    return isLiveMode() ? realApi.getStreamAnalyses() : mockApi.getStreamAnalyses();
+    return realApi.getStreamAnalyses();
   },
 
   getStreamAnalysis(channelId: number): Promise<ApiResponse<StreamAnalysis>> {
-    return isLiveMode() ? realApi.getStreamAnalysis(channelId) : mockApi.getStreamAnalysis(channelId);
+    return realApi.getStreamAnalysis(channelId);
   },
 };
