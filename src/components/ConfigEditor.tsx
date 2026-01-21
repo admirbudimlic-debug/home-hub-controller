@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChannelConfig, ServiceType } from '@/types/channel';
+import { ChannelConfig, ServiceType, AudioPair } from '@/types/channel';
 import { api } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -79,12 +79,18 @@ export function ConfigEditor({ channelId, onApply }: ConfigEditorProps) {
     const errs: string[] = [];
     if (!config) return false;
 
-    // SRT validation
-    if (!config.rx.srt.targetHost) {
-      errs.push('SRT target host is required');
-    }
-    if (!config.rx.srt.targetPort || config.rx.srt.targetPort < 1024) {
-      errs.push('SRT target port must be >= 1024');
+    // SRT validation based on mode
+    if (config.rx.srt.mode === 'caller') {
+      if (!config.rx.srt.targetHost) {
+        errs.push('SRT target host is required for caller mode');
+      }
+      if (!config.rx.srt.targetPort || config.rx.srt.targetPort < 1024) {
+        errs.push('SRT target port must be >= 1024');
+      }
+    } else {
+      if (!config.rx.srt.listenPort || config.rx.srt.listenPort < 1024) {
+        errs.push('SRT listen port must be >= 1024');
+      }
     }
 
     // Multicast validation
@@ -139,6 +145,8 @@ export function ConfigEditor({ channelId, onApply }: ConfigEditorProps) {
     return <div className="animate-pulse bg-secondary rounded h-64" />;
   }
 
+  const isCallerMode = config.rx.srt.mode === 'caller';
+
   return (
     <div className="space-y-6">
       {errors.length > 0 && (
@@ -155,34 +163,73 @@ export function ConfigEditor({ channelId, onApply }: ConfigEditorProps) {
         </div>
       )}
 
-      {/* RX Config - SRT Caller */}
+      {/* RX Config - SRT */}
       <div className="space-y-4">
         <h4 className="font-semibold text-rx flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-rx" />
-          SRT Caller Configuration
+          SRT Configuration
         </h4>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="srtHost">Target Host</Label>
-            <Input
-              id="srtHost"
-              value={config.rx.srt.targetHost}
-              onChange={(e) => updateSrtConfig('targetHost', e.target.value)}
-              className="font-mono"
-              placeholder="192.168.1.100"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="srtPort">Target Port</Label>
-            <Input
-              id="srtPort"
-              type="number"
-              value={config.rx.srt.targetPort}
-              onChange={(e) => updateSrtConfig('targetPort', parseInt(e.target.value))}
-              className="font-mono"
-            />
-          </div>
+        
+        {/* SRT Mode Selection */}
+        <div className="space-y-2">
+          <Label>SRT Mode</Label>
+          <Select
+            value={config.rx.srt.mode}
+            onValueChange={(v) => updateSrtConfig('mode', v)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="listener">Listener (accept connections)</SelectItem>
+              <SelectItem value="caller">Caller (connect to source)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
+        {/* Mode-specific fields */}
+        {isCallerMode ? (
+          <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-rx/30">
+            <div className="space-y-2">
+              <Label htmlFor="srtHost">Target Host</Label>
+              <Input
+                id="srtHost"
+                value={config.rx.srt.targetHost || ''}
+                onChange={(e) => updateSrtConfig('targetHost', e.target.value)}
+                className="font-mono"
+                placeholder="192.168.1.100"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="srtPort">Target Port</Label>
+              <Input
+                id="srtPort"
+                type="number"
+                value={config.rx.srt.targetPort || ''}
+                onChange={(e) => updateSrtConfig('targetPort', parseInt(e.target.value))}
+                className="font-mono"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="pl-4 border-l-2 border-rx/30">
+            <div className="space-y-2">
+              <Label htmlFor="listenPort">Listen Port</Label>
+              <Input
+                id="listenPort"
+                type="number"
+                value={config.rx.srt.listenPort || 5000 + channelId}
+                onChange={(e) => updateSrtConfig('listenPort', parseInt(e.target.value))}
+                className="font-mono max-w-[200px]"
+              />
+              <p className="text-xs text-muted-foreground">
+                SRT sources will connect to this port
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Common SRT settings */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="streamId">Stream ID (optional)</Label>
@@ -374,30 +421,50 @@ export function ConfigEditor({ channelId, onApply }: ConfigEditorProps) {
                 placeholder="your-stream-key"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="videoBitrate">Video Bitrate (kbps)</Label>
-                <Input
-                  id="videoBitrate"
-                  type="number"
-                  value={config.rtmp.rtmpVideoBitrate || ''}
-                  onChange={(e) => updateRtmpConfig('rtmpVideoBitrate', parseInt(e.target.value))}
-                  className="font-mono"
-                  placeholder="6000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="audioBitrate">Audio Bitrate (kbps)</Label>
-                <Input
-                  id="audioBitrate"
-                  type="number"
-                  value={config.rtmp.rtmpAudioBitrate || ''}
-                  onChange={(e) => updateRtmpConfig('rtmpAudioBitrate', parseInt(e.target.value))}
-                  className="font-mono"
-                  placeholder="192"
-                />
-              </div>
+
+            {/* Quality Preset */}
+            <div className="space-y-2">
+              <Label>Quality Preset</Label>
+              <Select
+                value={config.rtmp.qualityPreset || 'passthrough'}
+                onValueChange={(v) => {
+                  updateRtmpConfig('qualityPreset', v);
+                  // Auto-fill settings based on preset
+                  if (v === 'passthrough') {
+                    updateRtmpConfig('videoCodec', 'copy');
+                    updateRtmpConfig('audioCodec', 'copy');
+                  } else if (v === '1080p') {
+                    updateRtmpConfig('videoCodec', 'libx264');
+                    updateRtmpConfig('videoBitrate', 6000);
+                    updateRtmpConfig('videoWidth', 1920);
+                    updateRtmpConfig('videoHeight', 1080);
+                  } else if (v === '720p') {
+                    updateRtmpConfig('videoCodec', 'libx264');
+                    updateRtmpConfig('videoBitrate', 3500);
+                    updateRtmpConfig('videoWidth', 1280);
+                    updateRtmpConfig('videoHeight', 720);
+                  } else if (v === '480p') {
+                    updateRtmpConfig('videoCodec', 'libx264');
+                    updateRtmpConfig('videoBitrate', 1500);
+                    updateRtmpConfig('videoWidth', 854);
+                    updateRtmpConfig('videoHeight', 480);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="passthrough">Passthrough (no transcode)</SelectItem>
+                  <SelectItem value="1080p">1080p (6 Mbps)</SelectItem>
+                  <SelectItem value="720p">720p (3.5 Mbps)</SelectItem>
+                  <SelectItem value="480p">480p (1.5 Mbps)</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Video Settings */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="videoCodec">Video Codec</Label>
@@ -410,7 +477,8 @@ export function ConfigEditor({ channelId, onApply }: ConfigEditorProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="copy">Copy (passthrough)</SelectItem>
-                    <SelectItem value="libx264">H.264 (transcode)</SelectItem>
+                    <SelectItem value="libx264">H.264 (libx264)</SelectItem>
+                    <SelectItem value="libx265">H.265 (libx265)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -431,6 +499,93 @@ export function ConfigEditor({ channelId, onApply }: ConfigEditorProps) {
                     <SelectItem value="faster">Faster</SelectItem>
                     <SelectItem value="fast">Fast</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="slow">Slow (best quality)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Resolution and Bitrate */}
+            {config.rtmp.videoCodec !== 'copy' && (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="videoWidth">Width</Label>
+                  <Input
+                    id="videoWidth"
+                    type="number"
+                    value={config.rtmp.videoWidth || ''}
+                    onChange={(e) => updateRtmpConfig('videoWidth', parseInt(e.target.value) || undefined)}
+                    className="font-mono"
+                    placeholder="1920"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="videoHeight">Height</Label>
+                  <Input
+                    id="videoHeight"
+                    type="number"
+                    value={config.rtmp.videoHeight || ''}
+                    onChange={(e) => updateRtmpConfig('videoHeight', parseInt(e.target.value) || undefined)}
+                    className="font-mono"
+                    placeholder="1080"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="videoBitrate">Video Bitrate (kbps)</Label>
+                  <Input
+                    id="videoBitrate"
+                    type="number"
+                    value={config.rtmp.videoBitrate || ''}
+                    onChange={(e) => updateRtmpConfig('videoBitrate', parseInt(e.target.value))}
+                    className="font-mono"
+                    placeholder="6000"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Audio Settings */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="audioCodec">Audio Codec</Label>
+                <Select
+                  value={config.rtmp.audioCodec || 'copy'}
+                  onValueChange={(v) => updateRtmpConfig('audioCodec', v)}
+                >
+                  <SelectTrigger id="audioCodec">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="copy">Copy (passthrough)</SelectItem>
+                    <SelectItem value="aac">AAC</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="audioBitrate">Audio Bitrate (kbps)</Label>
+                <Input
+                  id="audioBitrate"
+                  type="number"
+                  value={config.rtmp.audioBitrate || ''}
+                  onChange={(e) => updateRtmpConfig('audioBitrate', parseInt(e.target.value))}
+                  className="font-mono"
+                  placeholder="192"
+                  disabled={config.rtmp.audioCodec === 'copy'}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="audioPair">Audio Pair</Label>
+                <Select
+                  value={config.rtmp.audioPair || 'primary'}
+                  onValueChange={(v) => updateRtmpConfig('audioPair', v as AudioPair)}
+                >
+                  <SelectTrigger id="audioPair">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="primary">Primary (tracks 1-2)</SelectItem>
+                    <SelectItem value="secondary">Secondary (tracks 3-4)</SelectItem>
+                    <SelectItem value="both">Both pairs</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

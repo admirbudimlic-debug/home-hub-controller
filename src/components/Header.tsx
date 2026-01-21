@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { Server, RefreshCw, Wifi, Settings as SettingsIcon } from 'lucide-react';
+import { Server, RefreshCw, Settings as SettingsIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BackendSettings } from '@/components/BackendSettings';
+import { ConnectionIndicator } from '@/components/ConnectionIndicator';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
@@ -29,7 +30,6 @@ export function Header({ onRefresh, isRefreshing, lastUpdated }: HeaderProps) {
             )}>
               <Server className="h-5 w-5 text-primary" />
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-status-running border-2 border-background" />
           </div>
           
           {/* Title */}
@@ -49,15 +49,7 @@ export function Header({ onRefresh, isRefreshing, lastUpdated }: HeaderProps) {
         <div className="flex items-center gap-6">
           {/* Connection status */}
           <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <div className="relative">
-                <Wifi className="h-4 w-4 text-status-running" />
-                <div className="absolute inset-0 animate-ping">
-                  <Wifi className="h-4 w-4 text-status-running opacity-40" />
-                </div>
-              </div>
-              <span className="text-xs uppercase tracking-wider">Connected</span>
-            </div>
+            <ConnectionIndicator />
             
             <div className="h-4 w-px bg-border" />
             
