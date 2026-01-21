@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { X, Radio, HardDrive, Cast, Clock, Hash, AlertTriangle } from 'lucide-react';
+import { X, Radio, HardDrive, Cast, Clock, Hash, AlertTriangle, Activity } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { StatusBadge } from './StatusBadge';
 import { ServiceControl } from './ServiceControl';
 import { LogViewer } from './LogViewer';
 import { ConfigEditor } from './ConfigEditor';
+import { BitrateIndicator } from './BitrateIndicator';
+import { PidTable } from './PidTable';
 import { Channel, ServiceType } from '@/types/channel';
+import { useStreamAnalysis } from '@/hooks/useStreamAnalysis';
 import { api } from '@/services/mockApi';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +29,7 @@ const serviceConfig = {
 export function ChannelDetailModal({ channelId, onClose, onServiceAction, loadingStates }: ChannelDetailModalProps) {
   const [channel, setChannel] = useState<Channel | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { analysis, isLoading: analysisLoading } = useStreamAnalysis(channelId, 3000);
 
   const fetchChannel = async () => {
     if (!channelId) return;
@@ -74,6 +78,7 @@ export function ChannelDetailModal({ channelId, onClose, onServiceAction, loadin
           <Tabs defaultValue="status" className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="shrink-0 w-full justify-start bg-secondary">
               <TabsTrigger value="status">Status</TabsTrigger>
+              <TabsTrigger value="stream">Stream Analysis</TabsTrigger>
               <TabsTrigger value="logs">Logs</TabsTrigger>
               <TabsTrigger value="config">Configuration</TabsTrigger>
             </TabsList>
@@ -160,6 +165,85 @@ export function ChannelDetailModal({ channelId, onClose, onServiceAction, loadin
                   </div>
                 </div>
               </div>
+            </TabsContent>
+
+            <TabsContent value="stream" className="flex-1 overflow-auto mt-4 space-y-4">
+              {/* Stream bitrate card */}
+              <div className="rounded-lg border border-border bg-card p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-primary" />
+                    Stream Bitrate
+                  </h4>
+                  <BitrateIndicator
+                    bitrateMbps={analysis?.bitrate?.totalMbps || null}
+                    available={analysis?.available || false}
+                    showLabel
+                  />
+                </div>
+                {analysis?.available && (
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Total packets: </span>
+                      <span className="font-mono">{analysis.packets?.toLocaleString() || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Invalid sync: </span>
+                      <span className={cn("font-mono", analysis.invalid && analysis.invalid > 0 ? "text-status-error" : "")}>
+                        {analysis.invalid || 0}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Last update: </span>
+                      <span className="font-mono text-xs">
+                        {analysis.timestamp ? new Date(analysis.timestamp).toLocaleTimeString() : '—'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {!analysis?.available && (
+                  <p className="text-muted-foreground text-sm">
+                    {analysis?.error || 'No stream data available. Start the RX service to see stream analysis.'}
+                  </p>
+                )}
+              </div>
+
+              {/* PID table */}
+              <div className="rounded-lg border border-border bg-card p-4">
+                <h4 className="font-semibold mb-4">PID Analysis</h4>
+                {analysis?.available && analysis.pids ? (
+                  <PidTable pids={analysis.pids} />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No PID data available</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Services in stream */}
+              {analysis?.services && analysis.services.length > 0 && (
+                <div className="rounded-lg border border-border bg-card p-4">
+                  <h4 className="font-semibold mb-4">Detected Services</h4>
+                  <div className="space-y-2">
+                    {analysis.services.map((svc) => (
+                      <div key={svc.id} className="flex items-center justify-between p-3 rounded-md bg-secondary/50">
+                        <div>
+                          <span className="font-medium">{svc.name}</span>
+                          {svc.provider && (
+                            <span className="text-muted-foreground text-sm ml-2">({svc.provider})</span>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <span>PMT: {svc.pmtPid}</span>
+                          <span className="mx-2">|</span>
+                          <span>PCR: {svc.pcrPid}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="logs" className="flex-1 overflow-hidden mt-4">
