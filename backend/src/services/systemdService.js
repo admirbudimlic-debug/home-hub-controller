@@ -12,12 +12,17 @@ const execAsync = promisify(exec);
 
 /**
  * Get service unit name for a channel and service type
+ * Uses systemd template instance format: service@instance.service
+ * Example: rx@5001.service, rec@5001.service, rtmp@5001.service
  */
 const getServiceName = (channelId, serviceType) => {
   const pattern = config.servicePatterns[serviceType];
   if (!pattern) {
     throw new Error(`Unknown service type: ${serviceType}`);
   }
+  // Support both formats:
+  // - Template format: rx@{port}.service -> rx@5001.service
+  // - Legacy format: rx{port}.service -> rx5001.service
   return pattern.replace('{port}', channelId.toString());
 };
 

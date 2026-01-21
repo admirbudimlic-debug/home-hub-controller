@@ -1,0 +1,37 @@
+[Unit]
+Description=BratesHUB SRT Receiver - Channel %i
+Documentation=https://tsduck.io/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/brateshub/bin/rx-start.sh %i
+ExecStopPost=/bin/rm -f /var/run/brateshub/channel%i.ts
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
+
+# Run as brateshub user
+User=brateshub
+Group=brateshub
+
+# Environment
+Environment=CONFIG_DIR=/opt/brateshub/configs
+Environment=FIFO_DIR=/var/run/brateshub
+EnvironmentFile=-/opt/brateshub/configs/channel%i.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rx@%i
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/run/brateshub /opt/brateshub/logs
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
