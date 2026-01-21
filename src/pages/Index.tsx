@@ -5,7 +5,7 @@ import { ChannelDetailModal } from '@/components/ChannelDetailModal';
 import { BulkControls } from '@/components/BulkControls';
 import { IloControlPanel } from '@/components/IloControlPanel';
 import { Channel, ServiceType } from '@/types/channel';
-import { api } from '@/services/mockApi';
+import { api } from '@/services/api';
 import { useChannelAnalysis } from '@/hooks/useStreamAnalysis';
 import { useToast } from '@/hooks/use-toast';
 import { Radio, HardDrive, Cast } from 'lucide-react';

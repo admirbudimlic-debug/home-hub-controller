@@ -3,7 +3,7 @@ import { Download, Filter, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { LogEntry, ServiceType } from '@/types/channel';
-import { api } from '@/services/mockApi';
+import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
 
 interface LogViewerProps {

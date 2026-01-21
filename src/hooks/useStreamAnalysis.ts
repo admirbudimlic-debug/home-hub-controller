@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChannelAnalysis, StreamAnalysis } from '@/types/stream';
-import { api } from '@/services/mockApi';
+import { api } from '@/services/api';
 
 // Hook for bulk channel bitrate monitoring
 export function useChannelAnalysis(refreshInterval = 2000) {
